@@ -27,13 +27,18 @@ jobs:
       # mlugg/setup-zig@v1 construye el nombre viejo del archivo
       # (zig-windows-x86_64-0.15.1.zip) y da 404: desde 0.14.1 el nombre
       # es zig-x86_64-windows-0.15.1.zip. Se descarga directo.
+      # OJO: lo que se escribe en GITHUB_PATH solo aplica a los pasos
+      # SIGUIENTES, no al paso actual; por eso la comprobacion usa la
+      # ruta completa del exe. $ProgressPreference quita la barra de
+      # progreso que hace lentisima la descarga en PowerShell.
       - name: Setup Zig 0.15.1
         shell: pwsh
         run: |
+          $ProgressPreference = 'SilentlyContinue'
           Invoke-WebRequest -Uri https://ziglang.org/download/0.15.1/zig-x86_64-windows-0.15.1.zip -OutFile zig.zip
           Expand-Archive zig.zip -DestinationPath .
           Add-Content $env:GITHUB_PATH "$PWD\zig-x86_64-windows-0.15.1"
-          zig version
+          .\zig-x86_64-windows-0.15.1\zig.exe version
 
       - name: Build resources
         run: zig rc resource.rc lu-an.res
