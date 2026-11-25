@@ -54,11 +54,19 @@ jobs:
 
       - name: Sign with SignPath (free, open source)
         if: env.HAS_SIGNPATH_TOKEN == 'true'
-        uses: signpath/github-action@v1
+        uses: signpath/github-action-submit-signing-request@v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
           signing-policy-slug: release-signing
           github-artifact-id: ${{ steps.upload.outputs.artifact-id }}
-          output-artifact-override: LuAnOptimizer-signed
+          wait-for-completion: true
+          output-artifact-directory: ./signed
+
+      - name: Upload signed artifact
+        if: env.HAS_SIGNPATH_TOKEN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuAnOptimizer-signed
+          path: ./signed
