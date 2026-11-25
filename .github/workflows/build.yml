@@ -1,0 +1,60 @@
+# Build Lu-An Optimizer on Windows and (once approved) sign it with
+# SignPath Foundation's free code signing for open-source projects.
+#
+# Setup needed in the GitHub repository (after SignPath approves the project):
+#  - Secret SIGNPATH_API_TOKEN (SignPath API token)
+#  - Variables: SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG
+# Without those, the build still runs and uploads the unsigned .exe.
+# The certificate is issued to SignPath Foundation, not to Lu-An.
+name: Build and sign
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig 0.15.1
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.15.1
+
+      - name: Build resources
+        run: zig rc resource.rc lu-an.res
+
+      - name: Build LuAnOptimizer.exe
+        run: >
+          zig cc -target x86_64-windows-gnu -O2 -D_WIN32_WINNT=0x0601
+          main.c lu-an.res -o LuAnOptimizer.exe
+          -lcomctl32 -lgdi32 -luser32 -lkernel32 -liphlpapi -lws2_32
+          -lgdiplus -lole32 -ladvapi32 -lwininet -lurlmon -lbcrypt
+          -ldxgi -lwbemuuid -loleaut32 -Wl,--subsystem,windows
+
+      - name: Copy manifest
+        run: Copy-Item app.manifest LuAnOptimizer.exe.manifest
+
+      - name: Upload unsigned artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuAnOptimizer
+          path: |
+            LuAnOptimizer.exe
+            LuAnOptimizer.exe.manifest
+
+      - name: Sign with SignPath (free, open source)
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+        uses: signpath/github-action@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ steps.upload.outputs.artifact-id }}
+          output-artifact-override: LuAnOptimizer-signed
