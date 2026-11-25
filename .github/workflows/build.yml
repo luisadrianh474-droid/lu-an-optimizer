@@ -18,10 +18,10 @@ jobs:
   build:
     runs-on: windows-latest
     # GitHub no permite usar `secrets` directamente en un `if:`.
-        # Se pasa a una variable de entorno y se prueba esa variable.
-        env:
-        HAS_SIGNPATH_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
-        steps:
+    # Se pasa a una variable de entorno y se prueba esa variable.
+    env:
+      HAS_SIGNPATH_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+    steps:
       - uses: actions/checkout@v4
 
       - name: Setup Zig 0.15.1
@@ -53,7 +53,7 @@ jobs:
             LuAnOptimizer.exe.manifest
 
       - name: Sign with SignPath (free, open source)
-if: env.HAS_SIGNPATH_TOKEN == 'true'
+        if: env.HAS_SIGNPATH_TOKEN == 'true'
         uses: signpath/github-action@v1
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
