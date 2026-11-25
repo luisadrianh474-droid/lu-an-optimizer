@@ -1,0 +1,30 @@
+#include <windows.h>
+1 RT_MANIFEST "app.manifest"
+100 ICON "luan.ico"
+101 RCDATA "logo.jpg"
+1 VERSIONINFO
+FILEVERSION 9,0,0,0
+PRODUCTVERSION 9,0,0,0
+FILEFLAGSMASK 0x3f
+FILEFLAGS 0
+FILEOS 0x40004
+FILETYPE 1
+FILESUBTYPE 0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "FileVersion", "9.0.0.0"
+      VALUE "ProductVersion", "9.0.0.0"
+      VALUE "ProductName", "Lu-An Optimizer"
+      VALUE "FileDescription", "Lu-An Optimizer - Timer + FilterKeys + DNS + Competitivo"
+      VALUE "CompanyName", "Lu-An Gaming Optimization"
+      VALUE "LegalCopyright", "Lu-An Gaming Optimization"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

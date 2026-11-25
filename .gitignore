@@ -1,0 +1,5 @@
+LuAnOptimizer.exe
+LuAnOptimizer.exe.manifest
+*.pdb
+lu-an.res
+*.zip
