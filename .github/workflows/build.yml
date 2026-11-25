@@ -49,7 +49,7 @@ jobs:
           main.c lu-an.res -o LuAnOptimizer.exe
           -lcomctl32 -lgdi32 -luser32 -lkernel32 -liphlpapi -lws2_32
           -lgdiplus -lole32 -ladvapi32 -lwininet -lurlmon -lbcrypt
-          -ldxgi -lwbemuuid -loleaut32 -Wl,--subsystem,windows
+          -ldxgi -lwbemuuid -loleaut32 "-Wl,--subsystem,windows"
 
       - name: Copy manifest
         run: Copy-Item app.manifest LuAnOptimizer.exe.manifest
