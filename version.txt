@@ -1,0 +1,3 @@
+version=9.0.0
+url=https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/latest
+sha256=f45f19150ded3a5d4457a0203b4281e5754719dafecb305882b893c6e6ca9ac1
