@@ -24,10 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # mlugg/setup-zig@v1 construye el nombre viejo del archivo
+      # (zig-windows-x86_64-0.15.1.zip) y da 404: desde 0.14.1 el nombre
+      # es zig-x86_64-windows-0.15.1.zip. Se descarga directo.
       - name: Setup Zig 0.15.1
-        uses: mlugg/setup-zig@v1
-        with:
-          version: 0.15.1
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://ziglang.org/download/0.15.1/zig-x86_64-windows-0.15.1.zip -OutFile zig.zip
+          Expand-Archive zig.zip -DestinationPath .
+          Add-Content $env:GITHUB_PATH "$PWD\zig-x86_64-windows-0.15.1"
+          zig version
 
       - name: Build resources
         run: zig rc resource.rc lu-an.res
