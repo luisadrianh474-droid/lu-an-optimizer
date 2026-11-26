@@ -1,5 +1,12 @@
-/* Lu-An Optimizer v11 - Timer Resolution + FilterKeys + DNS Jumper + Competitivo
- * Novedades v11: (1) ventana compacta 700x560 con desplazamiento vertical en cada pestana (barra + rueda), (2) cuadro de estado ACTIVO/APAGADO arriba a la derecha, (3) idioma ES/EN con guardado en registro, (4) version visible v11.0.0 en titulo y etiqueta, (5) sin ventana de cmd al abrir: el plan de energia se lee con PowerGetActiveScheme (powrprof), no con _popen.
+/* Lu-An Optimizer v12 - Timer Resolution + FilterKeys + DNS Jumper + Competitivo
+ * Novedades v12: arreglo del auto-update (v11 descargaba la pagina HTML de
+ * releases porque version.txt apuntaba a releases/latest y su SHA256 nunca
+ * coincidia). Ahora la URL del exe se resuelve desde la API de GitHub
+ * Releases (browser_download_url del asset LuAnOptimizer.exe) o se
+ * construye como releases/download/v<ver>/LuAnOptimizer.exe; el campo
+ * url= de version.txt ya no se usa como descarga, y el hilo de descarga
+ * se niega a bajar cualquier URL que no termine en .exe.
+ * Novedades v11: (1) ventana compacta 700x560 con desplazamiento vertical en cada pestana (barra + rueda), (2) cuadro de estado ACTIVO/APAGADO arriba a la derecha, (3) idioma ES/EN con guardado en registro, (4) version visible en titulo y etiqueta, (5) sin ventana de cmd al abrir: el plan de energia se lee con PowerGetActiveScheme (powrprof), no con _popen.
  * Novedades v10: (1) Modo Ultra Baja Latencia (ajustes de red por
  * registro con respaldo/restaurar, pausar Windows Update y Delivery
  * Optimization, ping a servidores de juego, diagnostico de ruta con
@@ -110,9 +117,9 @@
 #define FW_SEMIBOLD 600
 #endif
 
-/* ---------- Version (v11) ---------- */
-#define APP_VERSION "11.0.0"
-#define APP_VERSION_NUM 11,0,0,0
+/* ---------- Version (v12) ---------- */
+#define APP_VERSION "12.0.0"
+#define APP_VERSION_NUM 12,0,0,0
 #define UPDATE_API_URL "https://api.github.com/repos/luisadrianh474-droid/lu-an-optimizer/releases/latest"
 #define UPDATE_TXT_URL "https://raw.githubusercontent.com/luisadrianh474-droid/lu-an-optimizer/main/version.txt"
 #define UPDATE_RELEASES_URL "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/latest"
@@ -1785,9 +1792,14 @@ static void CloseBackgroundApps(void) {
     SetStatus(msg);
 }
 
-/* ================= v9: AUTO-ACTUALIZACION =================
+/* ================= v9: AUTO-ACTUALIZACION (v12: URL del exe) =================
  * Consulta primero version.txt (raw.githubusercontent, formato simple
- * version=/sha256=/url=) y si falla, la API de GitHub Releases. Todo en
+ * version=/sha256=) y si falla, la API de GitHub Releases. La URL de
+ * descarga del exe se resuelve SIEMPRE desde la API (browser_download_url
+ * del asset LuAnOptimizer.exe) o se construye como
+ * releases/download/v<ver>/LuAnOptimizer.exe: el campo url= de
+ * version.txt ya no se usa (en v11 apuntaba a la pagina de releases y el
+ * updater descargaba HTML). Todo en
  * un hilo de trabajo con timeout corto (~5 s): si la red falla o el repo
  * aun no existe (el repo en GitHub todavia no esta publicado),
  * NO se muestra error: solo "No se pudo revisar actualizaciones" en la
@@ -1868,6 +1880,39 @@ static int FetchUrl(const char *url, char *out, int outSize) {
     InternetCloseHandle(hInet);
     return ok && total > 0;
 }
+/* v12: resuelve la URL directa del .exe de la version `ver`.
+ * 1) API de GitHub Releases: asset cuyo nombre es LuAnOptimizer.exe,
+ *    su browser_download_url (misma busqueda que el fallback de abajo).
+ * 2) Si la API falla, URL directa construida:
+ *    releases/download/v<ver>/LuAnOptimizer.exe (el tag lleva "v").
+ * El campo url= de version.txt YA NO se usa: en v11 apuntaba a la
+ * pagina web de releases (releases/latest) y el updater descargaba
+ * HTML, cuyo SHA256 nunca coincidia con el publicado. Devuelve 1 si
+ * quedo una URL .exe en `out`, 0 si no (entonces el hilo de descarga
+ * abre la pagina de releases como antes). */
+static int ResolveExeDownloadUrl(const char *ver, char *out, int outLen) {
+    out[0] = 0;
+    char buf[65536];
+    if (FetchUrl(UPDATE_API_URL, buf, sizeof buf)) {
+        const char *p = buf;
+        while ((p = strstr(p, "\"browser_download_url\"")) != NULL) {
+            char u2[512] = {0};
+            const char *q = strchr(p + 22, '"');
+            if (q) { q++; const char *e = strchr(q, '"'); if (e && e - q < (int)sizeof u2) { memcpy(u2, q, e - q); u2[e - q] = 0; } }
+            if (u2[0] && strstr(u2, "LuAnOptimizer.exe")) { strncpy(out, u2, outLen - 1); out[outLen - 1] = 0; return 1; }
+            p += 22;
+        }
+    }
+    if (ver && ver[0]) {
+        const char *v = ver;
+        while (*v == 'v' || *v == 'V') v++;
+        if (*v) {
+            snprintf(out, outLen, "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/download/v%s/LuAnOptimizer.exe", v);
+            return 1;
+        }
+    }
+    return 0;
+}
 static DWORD WINAPI UpdateCheckThreadProc(LPVOID lp) {
     (void)lp;
     if (!g_updateManual) Sleep(3000); /* al arrancar, esperar un poco: nunca bloquear el inicio */
@@ -1884,8 +1929,9 @@ static DWORD WINAPI UpdateCheckThreadProc(LPVOID lp) {
             ver[i] = 0;
             const char *h = strstr(buf, "sha256=");
             if (h) { h += 7; i = 0; while (*h && *h != '\r' && *h != '\n' && i < (int)sizeof sha - 1) sha[i++] = *h++; sha[i] = 0; }
-            const char *u = strstr(buf, "url=");
-            if (u) { u += 4; i = 0; while (*u && *u != '\r' && *u != '\n' && i < (int)sizeof url - 1) url[i++] = *u++; url[i] = 0; }
+            /* v12: el campo url= de version.txt NO se lee: en v11 apuntaba
+             * a la pagina web de releases y el updater descargaba HTML.
+             * La URL del exe se resuelve abajo con ResolveExeDownloadUrl. */
             if (ver[0]) found = 1;
         }
     }
@@ -1906,9 +1952,17 @@ static DWORD WINAPI UpdateCheckThreadProc(LPVOID lp) {
             /* hash en el body del release: linea "SHA256: <hash>" */
             const char *hs = strstr(buf, "SHA256:");
             if (hs) { hs += 7; while (*hs == ' ') hs++; int i = 0; while (*hs && *hs != '"' && *hs != '\r' && *hs != '\n' && *hs != '\\' && i < (int)sizeof sha - 1) sha[i++] = *hs++; sha[i] = 0; }
+            /* Si la API dio el tag pero no el asset, URL directa del tag. */
+            if (!url[0] && tag[0]) {
+                const char *v = tag; while (*v == 'v' || *v == 'V') v++;
+                if (*v) snprintf(url, sizeof url, "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/download/v%s/LuAnOptimizer.exe", v);
+            }
             found = 1;
         }
     }
+    /* v12: si version.txt dio version+hash pero ninguna URL (su url= ya
+     * no se usa), resolver la descarga del exe desde la API o construirla. */
+    if (found && !url[0]) ResolveExeDownloadUrl(ver, url, sizeof url);
     InterlockedExchange(&g_updateBusy, 0);
     if (!found) { if (g_hwnd) PostMessageA(g_hwnd, WM_UPDATE_STATUS, 0, 0); return 0; }
     if (!IsNewerVersion(ver)) { if (g_hwnd) PostMessageA(g_hwnd, WM_UPDATE_STATUS, 1, 0); return 0; }
@@ -1974,6 +2028,19 @@ static DWORD WINAPI UpdateDownloadThreadProc(LPVOID lp) {
         ShellExecuteA(NULL, "open", UPDATE_RELEASES_URL, NULL, NULL, SW_SHOWNORMAL);
         if (g_hwnd) PostMessageA(g_hwnd, WM_UPDATE_STATUS, 2, 0);
         return 0;
+    }
+    /* v12: defensa: nunca descargar una URL que no sea el .exe. En v11
+     * la URL era la pagina HTML de releases y el SHA256 nunca coincidia
+     * (la proteccion funciono, pero la descarga era basura). Si esto
+     * salta, se avisa y se abre la pagina de releases como antes. */
+    {
+        size_t n = strlen(g_updateUrl);
+        if (n < 5 || _stricmp(g_updateUrl + n - 4, ".exe") != 0) {
+            MessageBoxA(g_hwnd, Tr(LS_UPD_DOWNLOAD_FAIL), Tr(LS_UPD_TITLE), MB_ICONERROR);
+            ShellExecuteA(NULL, "open", UPDATE_RELEASES_URL, NULL, NULL, SW_SHOWNORMAL);
+            if (g_hwnd) PostMessageA(g_hwnd, WM_UPDATE_STATUS, 2, 0);
+            return 0;
+        }
     }
     HRESULT hr = URLDownloadToFileA(NULL, g_updateUrl, newExe, 0, NULL);
     if (hr != S_OK) {

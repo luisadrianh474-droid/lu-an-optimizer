@@ -1,13 +1,32 @@
-# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v11)
+# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v12)
 
 Un solo archivo `LuAnOptimizer.exe`. Doble clic y se abre.
 No necesita Python, no necesita .NET, no necesita instalar nada.
 
 Compatible con **Windows 7, 8, 10 y 11** (64 bits).
 Escrito en C con la API de Windows, por eso es un .exe nativo y ligero
-(537 KB, icono incluido). Logo LU-AN incluido dentro de la ventana
+(icono incluido). Logo LU-AN incluido dentro de la ventana
 **y como icono del archivo en el Explorador**.
-Versión incrustada **11.0.0.0** (se ve en Propiedades del .exe > Detalles).
+Versión incrustada **12.0.0.0** (se ve en Propiedades del .exe > Detalles).
+
+## Novedades de la v12 (arreglo del auto-update)
+
+En v10/v11, al pulsar **Actualizar** salía "La descarga no coincide con
+el SHA256 publicado. Actualización cancelada por seguridad." La causa: el
+campo `url=` de `version.txt` apuntaba a la página web de releases
+(`.../releases/latest`), así que el programa descargaba el HTML de esa
+página y su SHA256 nunca coincidía con el publicado. La protección
+funcionó como debía (no instaló nada), pero la descarga era basura.
+
+Ahora la URL del `.exe` se resuelve **desde la API de GitHub Releases**
+(`browser_download_url` del asset `LuAnOptimizer.exe`); si la API falla,
+se construye la URL directa
+`.../releases/download/v<versión>/LuAnOptimizer.exe`. El campo `url=` de
+`version.txt` ya no se usa como descarga. Además, el hilo de descarga se
+**niega a bajar cualquier URL que no termine en `.exe`**: si eso pasara,
+avisa y abre la página de releases, sin descargar páginas HTML. Nada más
+cambió en v12: misma ventana 700x560 con desplazamiento, cuadro
+ACTIVO/APAGADO, idioma ES/EN, SOCD, Ultra, ping/traceroute y bandeja.
 
 ## Novedades de la v11
 

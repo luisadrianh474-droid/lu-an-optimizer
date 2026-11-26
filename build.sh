@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 ZIG=${ZIG:-/tmp/zig-x86_64-linux-0.15.1/zig}
 # Si Zig no esta en /tmp (es efimero), descomprime la copia guardada:
 #   tar -xf ~/workspace/tools/zig-0.15.1.tar.xz -C /tmp
-# 1) Recursos (icono LU-AN + manifiesto + logo.jpg + version 11.0.0.0):
+# 1) Recursos (icono LU-AN + manifiesto + logo.jpg + version 12.0.0.0):
 #    la salida es POSICIONAL, no /fo (con /fo zig rc sale con 0 pero no escribe nada).
 "$ZIG" rc /v resource.rc lu-an.res
 # 2) Compila el .exe enlazando el .res (icono incrustado verificado).
