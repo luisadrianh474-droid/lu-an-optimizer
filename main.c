@@ -117,26 +117,46 @@
 #define FW_SEMIBOLD 600
 #endif
 
-/* ---------- Version (v12) ---------- */
-#define APP_VERSION "12.0.0"
-#define APP_VERSION_NUM 12,0,0,0
+/* ---------- Version (v13) ---------- */
+#define APP_VERSION "13.0.0"
+#define APP_VERSION_NUM 13,0,0,0
 #define UPDATE_API_URL "https://api.github.com/repos/luisadrianh474-droid/lu-an-optimizer/releases/latest"
 #define UPDATE_TXT_URL "https://raw.githubusercontent.com/luisadrianh474-droid/lu-an-optimizer/main/version.txt"
 #define UPDATE_RELEASES_URL "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/latest"
 
-/* ---------- Colores (tema oscuro bonito) ---------- */
-#define COL_BG      RGB(15,23,42)
-#define COL_CARD    RGB(30,41,59)
-#define COL_CARD2   RGB(51,65,85)
-#define COL_TEXT    RGB(241,245,249)
-#define COL_MUTED   RGB(148,163,184)
-#define COL_ACCENT  RGB(34,211,238)
-#define COL_ACCENT2 RGB(99,102,241)
-#define COL_GREEN   RGB(52,211,153)
-#define COL_BTN     RGB(99,102,241)
-#define COL_BTN2    RGB(14,165,233)
-#define COL_MAGENTA RGB(217,70,239)   /* rosa/magenta del logo LU-AN */
-#define COL_TABHOVER RGB(56,72,102)  /* tarjeta intermedia para hover de pestana */
+/* ---------- Temas de colores (v13) ----------
+ * Paleta central: TODOS los dibujos personalizados (barra de pestanas,
+ * botones con brillo, interruptores ON/OFF, cuadro de estado, marcos de
+ * pagina, divisores, textos) leen sus colores de g_themeCur a traves de
+ * las macros COL_*, asi que cambiar de tema los vuelve a pintar a todos.
+ * 0 Neon (el aspecto actual, sin cambios), 1 Fuego (negro/naranja/rojo),
+ * 2 Esmeralda (negro/verde/lima). Se guarda en el registro
+ * HKCU\Software\LuAnOptimizer Theme ("neon"/"fuego"/"esmeralda"). */
+typedef struct { COLORREF bg, card, card2, text, muted, accent, accent2, green, btn, btn2, magenta, tabHover, bgDeep; } Theme;
+static const Theme g_themes[3] = {
+    /* Neon (actual): fondo azul oscuro, cian -> magenta */
+    { RGB(15,23,42), RGB(30,41,59), RGB(51,65,85), RGB(241,245,249), RGB(148,163,184), RGB(34,211,238), RGB(99,102,241), RGB(52,211,153), RGB(99,102,241), RGB(14,165,233), RGB(217,70,239), RGB(56,72,102), RGB(10,16,30) },
+    /* Fuego: fondo negro, naranja -> rojo */
+    { RGB(12,10,10), RGB(30,20,16), RGB(54,34,26), RGB(255,247,237), RGB(214,178,150), RGB(249,115,22), RGB(239,68,68), RGB(52,211,153), RGB(234,88,12), RGB(249,115,22), RGB(220,38,38), RGB(64,32,20), RGB(5,5,5) },
+    /* Esmeralda: fondo negro verdoso, verde -> lima */
+    { RGB(6,20,14), RGB(12,34,24), RGB(24,54,38), RGB(236,253,245), RGB(148,190,168), RGB(16,185,129), RGB(132,204,22), RGB(52,211,153), RGB(5,150,105), RGB(16,185,129), RGB(163,230,53), RGB(24,62,44), RGB(3,12,8) },
+};
+static const char *g_themeNames[3] = { "neon", "fuego", "esmeralda" };
+static int g_theme = 0; /* 0 Neon, 1 Fuego, 2 Esmeralda */
+static Theme g_themeCur; /* paleta activa (se fija en LoadTheme/ApplyTheme) */
+#define COL_BG      (g_themeCur.bg)
+#define COL_CARD    (g_themeCur.card)
+#define COL_CARD2   (g_themeCur.card2)
+#define COL_TEXT    (g_themeCur.text)
+#define COL_MUTED   (g_themeCur.muted)
+#define COL_ACCENT  (g_themeCur.accent)
+#define COL_ACCENT2 (g_themeCur.accent2)
+#define COL_GREEN   (g_themeCur.green)
+#define COL_BTN     (g_themeCur.btn)
+#define COL_BTN2    (g_themeCur.btn2)
+#define COL_MAGENTA (g_themeCur.magenta)   /* segundo color del degradado (logo LU-AN en Neon) */
+#define COL_TABHOVER (g_themeCur.tabHover) /* tarjeta intermedia para hover de pestana */
+#define COL_BGDEEP  (g_themeCur.bgDeep)    /* fondo mas oscuro (overlay, clase LuAnOverlay) */
 
 static HINSTANCE g_hInst;
 static HWND g_hwnd;
@@ -160,7 +180,7 @@ static int g_slideX = 0; /* desplazamiento de entrada de la pagina al cambiar de
 #define PAGE_W 680
 #define PAGE_H 256
 static int g_hasVarFont = 0;
-static HBRUSH g_brBg, g_brCard, g_brBtn;
+static HBRUSH g_brBg, g_brCard, g_brBtn, g_brBgDeep;
 static double g_desiredMs = 1.0;
 static double g_currentMs = 15.6;
 static HBITMAP g_hLogoBmp = NULL;
@@ -439,6 +459,10 @@ enum {
     LS_OVERLAY_FMT,
     LS_HOG_SYSTEM_SUFFIX,
     LS_HOG_UNKNOWN_NAME,
+    LS_THEME_LBL,
+    LS_THEME_NEON,
+    LS_THEME_FIRE,
+    LS_THEME_EMERALD,
     LS_COUNT
 };
 
@@ -696,6 +720,10 @@ static const char *g_langStr[LS_COUNT][2] = {
     { "Lu-An Monitor\r\nPing: %s | Jitter: %ld ms | Perdida: %ld%%\r\nCPU: %s | RAM: %lu%%\r\nTimer: %.2f ms | SOCD: %s\r\nFPS (pantalla): %s\r\nTemp: %s\r\nFPS = pantalla, no del juego.", "Lu-An Monitor\r\nPing: %s | Jitter: %ld ms | Loss: %ld%%\r\nCPU: %s | RAM: %lu%%\r\nTimer: %.2f ms | SOCD: %s\r\nFPS (screen): %s\r\nTemp: %s\r\nFPS = screen, not the game." }, /* LS_OVERLAY_FMT */
     { " [sistema]", " [system]" }, /* LS_HOG_SYSTEM_SUFFIX */
     { "el proceso", "the process" }, /* LS_HOG_UNKNOWN_NAME */
+    { "Tema:", "Theme:" }, /* LS_THEME_LBL */
+    { "Neón", "Neon" }, /* LS_THEME_NEON */
+    { "Fuego", "Fire" }, /* LS_THEME_FIRE */
+    { "Esmeralda", "Emerald" }, /* LS_THEME_EMERALD */
 };
 
 static int g_lang = 0; /* 0 = espanol, 1 = English */
@@ -722,6 +750,26 @@ static void SaveLanguage(void) {
     }
 }
 
+/* ---------- Temas (v13) ---------- */
+static void LoadTheme(void) {
+    g_theme = 0; /* Neon por defecto (el aspecto actual) */
+    HKEY hk;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\LuAnOptimizer", 0, KEY_READ, &hk) == ERROR_SUCCESS) {
+        char v[16]; DWORD n = sizeof v, tp = 0;
+        if (RegQueryValueExA(hk, "Theme", NULL, &tp, (BYTE *)v, &n) == ERROR_SUCCESS && tp == REG_SZ)
+            for (int i = 0; i < 3; i++) if (strcmp(v, g_themeNames[i]) == 0) { g_theme = i; break; }
+        RegCloseKey(hk);
+    }
+    g_themeCur = g_themes[g_theme];
+}
+static void SaveTheme(void) {
+    HKEY hk;
+    if (RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\LuAnOptimizer", 0, NULL, 0, KEY_SET_VALUE, NULL, &hk, NULL) == ERROR_SUCCESS) {
+        RegSetValueExA(hk, "Theme", 0, REG_SZ, (const BYTE *)g_themeNames[g_theme], (DWORD)strlen(g_themeNames[g_theme]) + 1);
+        RegCloseKey(hk);
+    }
+}
+
 /* Registro de controles traducibles (v11): se define aqui, antes de
  * ApplyLanguage(), que lo recorre al cambiar de idioma. */
 #define MAX_LANG_REG 256
@@ -733,6 +781,29 @@ static int g_langRegCount = 0;
 static void UpdateStatusBox(void) {
     if (g_hwnd) { RECT r = { 535, 10, 692, 48 }; InvalidateRect(g_hwnd, &r, FALSE); }
 }
+
+/* v13: aplica el tema actual a todo: cambia la paleta, recrea las
+ * brochas y vuelve a pintar la ventana, la barra de pestanas, las 5
+ * paginas y el overlay (si esta abierto). Sin reiniciar. */
+static BOOL CALLBACK InvalidateChildCb(HWND h, LPARAM lp) { (void)lp; InvalidateRect(h, NULL, TRUE); return TRUE; }
+static void ApplyTheme(void) {
+    g_themeCur = g_themes[g_theme];
+    if (g_brBg) DeleteObject(g_brBg);
+    if (g_brCard) DeleteObject(g_brCard);
+    if (g_brBtn) DeleteObject(g_brBtn);
+    if (g_brBgDeep) DeleteObject(g_brBgDeep);
+    g_brBg = CreateSolidBrush(COL_BG); g_brCard = CreateSolidBrush(COL_CARD); g_brBtn = CreateSolidBrush(COL_BTN);
+    g_brBgDeep = CreateSolidBrush(COL_BGDEEP);
+    if (!g_hwnd) return;
+    InvalidateRect(g_hwnd, NULL, TRUE);
+    EnumChildWindows(g_hwnd, InvalidateChildCb, 0);
+    if (g_tabBar) InvalidateRect(g_tabBar, NULL, TRUE);
+    for (int i = 0; i < 5; i++) if (g_pages[i]) { InvalidateRect(g_pages[i], NULL, TRUE); EnumChildWindows(g_pages[i], InvalidateChildCb, 0); }
+    { HWND ov = FindWindowA("LuAnOverlay", NULL);
+      if (ov) { InvalidateRect(ov, NULL, TRUE); EnumChildWindows(ov, InvalidateChildCb, 0); } }
+    UpdateStatusBox();
+}
+static void RefreshThemeCombo(void); /* v13: se define tras los IDs */
 
 /* ---------- Desplazamiento vertical de paginas (v11) ---------- */
 static int g_pageScroll[5] = { 0, 0, 0, 0, 0 };   /* desplazamiento actual por pestana */
@@ -890,6 +961,22 @@ static void RefreshDynamicTexts(void);
 /* v11: selector de idioma y etiqueta de version */
 #define ID_LANG_TOGGLE 1800
 #define ID_LBL_VERSION 1801
+/* v13: selector de tema y su etiqueta */
+#define ID_THEME_COMBO 1802
+#define ID_LBL_THEME 1803
+
+/* v13: rellena el desplegable de temas con los nombres traducidos y
+ * marca el tema actual. Se llama al crear la ventana y al cambiar de
+ * idioma (ApplyLanguage). */
+static void RefreshThemeCombo(void) {
+    HWND cb = Ctl(ID_THEME_COMBO);
+    if (!cb) return;
+    SendMessage(cb, CB_RESETCONTENT, 0, 0);
+    SendMessage(cb, CB_ADDSTRING, 0, (LPARAM)Tr(LS_THEME_NEON));
+    SendMessage(cb, CB_ADDSTRING, 0, (LPARAM)Tr(LS_THEME_FIRE));
+    SendMessage(cb, CB_ADDSTRING, 0, (LPARAM)Tr(LS_THEME_EMERALD));
+    SendMessage(cb, CB_SETCURSEL, (WPARAM)g_theme, 0);
+}
 #define WM_UPDATE_FOUND (WM_APP+5)
 #define WM_UPDATE_STATUS (WM_APP+6)
 #define WM_GAME_APPLY (WM_APP+7)
@@ -2855,10 +2942,8 @@ static LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
         break;
     case WM_CTLCOLORSTATIC: {
         HDC hdc = (HDC)wp;
-        SetTextColor(hdc, COL_TEXT); SetBkColor(hdc, RGB(10, 16, 30));
-        static HBRUSH brOv = NULL;
-        if (!brOv) brOv = CreateSolidBrush(RGB(10, 16, 30));
-        return (LRESULT)brOv;
+        SetTextColor(hdc, COL_TEXT); SetBkColor(hdc, COL_BGDEEP);
+        return (LRESULT)g_brBgDeep; /* v13: sigue el tema */
     }
     case WM_NCHITTEST: {
         /* Toda la ventana es arrastrable (el boton X sigue siendo clicable:
@@ -2976,6 +3061,7 @@ static void RefreshDynamicTexts(void) {
 static void ApplyLanguage(void) {
     for (int i = 0; i < g_langRegCount; i++)
         if (g_langReg[i].h) SetWindowTextA(g_langReg[i].h, Tr(g_langReg[i].key));
+    RefreshThemeCombo(); /* v13: los nombres de los temas tambien se traducen */
     /* Pestanas: Competitivo/Juegos cambian de nombre */
     g_tabNames[3] = Tr(LS_TAB_COMPETITIVE);
     g_tabNames[4] = Tr(LS_TAB_GAMES);
@@ -3740,6 +3826,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         g_fontBig = MakeUIFont(30, FW_BOLD);
         g_fontTitle = MakeUIFont(22, FW_SEMIBOLD);
         g_brBg = CreateSolidBrush(COL_BG); g_brCard = CreateSolidBrush(COL_CARD); g_brBtn = CreateSolidBrush(COL_BTN);
+        g_brBgDeep = CreateSolidBrush(COL_BGDEEP); /* v13: fondo del overlay */
         LoadLogo();
 
         /* Encabezado con logo (el logo se dibuja en WM_PAINT a la izquierda) */
@@ -3758,6 +3845,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         /* v11: selector de idioma (ES/EN) arriba a la derecha, bajo el
          * cuadro de estado. Muestra el idioma al que se cambia. */
         MakeButtonK(hwnd, 545, 50, 135, 28, LS_LANG_BTN, ID_LANG_TOGGLE);
+        /* v13: selector de tema bajo el boton de idioma (Neon / Fuego /
+         * Esmeralda). Desplegable estandar: el texto y la lista siguen
+         * la paleta por WM_CTLCOLOREDIT / WM_CTLCOLORLISTBOX. */
+        MakeLabelK(hwnd, 545, 84, 40, 20, LS_THEME_LBL, g_font, ID_LBL_THEME);
+        HWND tc = CreateWindowExA(0, "COMBOBOX", "", WS_CHILD|WS_VISIBLE|CBS_DROPDOWNLIST|WS_VSCROLL, 588, 80, 92, 130, hwnd, (HMENU)(INT_PTR)ID_THEME_COMBO, g_hInst, NULL);
+        SendMessage(tc, WM_SETFONT, (WPARAM)g_fontTab, TRUE);
+        RefreshThemeCombo();
 
         /* --- Tarjeta Timer --- */
         MakeLabel(hwnd, 20, 162, 300, 22, "TIMER RESOLUTION", g_fontSection, 0);
@@ -4041,21 +4135,21 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             SelectObject(hdc, g_fontTitle);
             TextOutA(hdc, 20, 40, "LU-AN", 5);
         }
-        /* v11: cuadro de estado arriba a la derecha (ACTIVO verde /
-         * APAGADO gris, esquinas redondeadas). */
+        /* v11: cuadro de estado arriba a la derecha (ACTIVO con el
+         * acento del tema / APAGADO gris, esquinas redondeadas). */
         { const char *st = Tr(g_compActive || g_ultraOn ? LS_STATUS_ACTIVE : LS_STATUS_OFF);
           HFONT oldF = SelectObject(hdc, g_fontBold);
           SIZE sz; GetTextExtentPoint32A(hdc, st, (int)strlen(st), &sz);
           int bw = sz.cx + 36; if (bw < 92) bw = 92;
           int bx = 690 - bw, by = 14, bh = 30;
-          HBRUSH bbr = CreateSolidBrush(g_compActive || g_ultraOn ? RGB(0x1F, 0x8A, 0x4A) : RGB(0x4A, 0x4F, 0x5E));
-          HPEN bpen = CreatePen(PS_SOLID, 1, g_compActive || g_ultraOn ? RGB(0x4C, 0xC3, 0x7A) : RGB(0x6B, 0x71, 0x82));
+          HBRUSH bbr = CreateSolidBrush(g_compActive || g_ultraOn ? Blend(COL_ACCENT, COL_BG, 205) : RGB(0x4A, 0x4F, 0x5E));
+          HPEN bpen = CreatePen(PS_SOLID, 1, g_compActive || g_ultraOn ? COL_ACCENT : RGB(0x6B, 0x71, 0x82));
           HPEN oldP = SelectObject(hdc, bpen); HBRUSH oldB = SelectObject(hdc, bbr);
           RoundRect(hdc, bx, by, bx + bw, by + bh, 14, 14);
           SelectObject(hdc, oldB); SelectObject(hdc, oldP);
           DeleteObject(bbr); DeleteObject(bpen);
           int dotR = 5, dotX = bx + 14, dotY = by + bh / 2;
-          HBRUSH dbr = CreateSolidBrush(g_compActive || g_ultraOn ? RGB(0x9C, 0xFF, 0xB8) : RGB(0xC7, 0xCC, 0xD9));
+          HBRUSH dbr = CreateSolidBrush(g_compActive || g_ultraOn ? COL_ACCENT : RGB(0xC7, 0xCC, 0xD9));
           HBRUSH oldD = SelectObject(hdc, dbr);
           Ellipse(hdc, dotX - dotR, dotY - dotR, dotX + dotR, dotY + dotR);
           SelectObject(hdc, oldD); DeleteObject(dbr);
@@ -4087,6 +4181,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         int id = LOWORD(wp);
         int code = HIWORD(wp);
         if (id == ID_DNS_ADAPTER && code == CBN_SELCHANGE) { RefreshCurrentDns(); return 0; }
+        if (id == ID_THEME_COMBO && code == CBN_SELCHANGE) { /* v13: cambiar tema al instante */
+            int sel = (int)SendMessage(Ctl(ID_THEME_COMBO), CB_GETCURSEL, 0, 0);
+            if (sel >= 0 && sel < 3 && sel != g_theme) { g_theme = sel; SaveTheme(); ApplyTheme(); }
+            return 0;
+        }
         if (code == BN_CLICKED && id >= ID_GAMES_AUTO_BASE && id < ID_GAMES_AUTO_BASE + 5) {
             int gi = id - ID_GAMES_AUTO_BASE;
             g_gameAuto[gi] = (IsChecked(id) == BST_CHECKED);
@@ -4427,10 +4526,11 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
     wc5.hCursor = LoadCursor(NULL, IDC_ARROW);
     RegisterClassA(&wc5);
 
+    LoadTheme(); /* v13: tema guardado, antes de registrar clases (el fondo del overlay lo usa) */
     WNDCLASSA wc4 = {0};
     wc4.lpfnWndProc = OverlayWndProc; wc4.hInstance = hInst; wc4.lpszClassName = "LuAnOverlay";
     wc4.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc4.hbrBackground = CreateSolidBrush(RGB(10, 16, 30));
+    wc4.hbrBackground = CreateSolidBrush(COL_BGDEEP);
     RegisterClassA(&wc4);
 
     wc3.hCursor = LoadCursor(NULL, IDC_ARROW);

@@ -1,4 +1,4 @@
-# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v12)
+# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v13)
 
 Un solo archivo `LuAnOptimizer.exe`. Doble clic y se abre.
 No necesita Python, no necesita .NET, no necesita instalar nada.
@@ -7,7 +7,25 @@ Compatible con **Windows 7, 8, 10 y 11** (64 bits).
 Escrito en C con la API de Windows, por eso es un .exe nativo y ligero
 (icono incluido). Logo LU-AN incluido dentro de la ventana
 **y como icono del archivo en el Explorador**.
-Versión incrustada **12.0.0.0** (se ve en Propiedades del .exe > Detalles).
+Versión incrustada **13.0.0.0** (se ve en Propiedades del .exe > Detalles).
+
+## Novedades de la v13 (temas de colores)
+
+Arriba a la derecha, bajo el botón de idioma, hay un selector **Tema**
+con 3 temas pre-seleccionados. Cambiar de tema se aplica al instante,
+sin reiniciar, y se guarda en el registro
+(`HKCU\Software\LuAnOptimizer Theme`) para la próxima vez:
+
+- **Neón** (el de siempre, por defecto): fondo azul oscuro, acentos
+  cian → magenta.
+- **Fuego**: fondo negro, acentos naranja → rojo.
+- **Esmeralda**: fondo negro verdoso, acentos verde → lima.
+
+Todo sigue la paleta del tema: barra de pestañas con su indicador en
+degradado, botones con brillo, interruptores ON/OFF, cuadro de estado
+ACTIVO/APAGADO, marcos de página, divisores y textos de las 5 pestañas.
+Los nombres de los temas también se traducen con el idioma (ES/EN). Nada
+más cambió en v13.
 
 ## Novedades de la v12 (arreglo del auto-update)
 
