@@ -117,32 +117,39 @@
 #define FW_SEMIBOLD 600
 #endif
 
-/* ---------- Version (v13) ---------- */
-#define APP_VERSION "13.0.0"
-#define APP_VERSION_NUM 13,0,0,0
+/* ---------- Version (v13.1) ---------- */
+#define APP_VERSION "13.1.0"
+#define APP_VERSION_NUM 13,1,0,0
 #define UPDATE_API_URL "https://api.github.com/repos/luisadrianh474-droid/lu-an-optimizer/releases/latest"
 #define UPDATE_TXT_URL "https://raw.githubusercontent.com/luisadrianh474-droid/lu-an-optimizer/main/version.txt"
 #define UPDATE_RELEASES_URL "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/latest"
 
-/* ---------- Temas de colores (v13) ----------
+/* ---------- Temas de colores (v13, v13.1) ----------
  * Paleta central: TODOS los dibujos personalizados (barra de pestanas,
  * botones con brillo, interruptores ON/OFF, cuadro de estado, marcos de
- * pagina, divisores, textos) leen sus colores de g_themeCur a traves de
- * las macros COL_*, asi que cambiar de tema los vuelve a pintar a todos.
+ * pagina, divisores, textos, barra de desplazamiento) leen sus colores
+ * de g_themeCur a traves de las macros COL_*, asi que cambiar de tema
+ * los vuelve a pintar a todos.
  * 0 Neon (el aspecto actual, sin cambios), 1 Fuego (negro/naranja/rojo),
- * 2 Esmeralda (negro/verde/lima). Se guarda en el registro
- * HKCU\Software\LuAnOptimizer Theme ("neon"/"fuego"/"esmeralda"). */
-typedef struct { COLORREF bg, card, card2, text, muted, accent, accent2, green, btn, btn2, magenta, tabHover, bgDeep; } Theme;
-static const Theme g_themes[3] = {
+ * 2 Esmeralda (negro/verde/lima), 3 Pinkimich (rosa pastel/blanco, el
+ * PRIMER tema claro: 'light' = 1 avisa a los dibujos que usan texto
+ * blanco fijo, como el cuadro de estado, que usen COL_TEXT en su lugar).
+ * Se guarda en el registro HKCU\Software\LuAnOptimizer Theme
+ * ("neon"/"fuego"/"esmeralda"/"pinkimich"). */
+typedef struct { COLORREF bg, card, card2, text, muted, accent, accent2, green, btn, btn2, magenta, tabHover, bgDeep; int light; } Theme;
+static const Theme g_themes[4] = {
     /* Neon (actual): fondo azul oscuro, cian -> magenta */
-    { RGB(15,23,42), RGB(30,41,59), RGB(51,65,85), RGB(241,245,249), RGB(148,163,184), RGB(34,211,238), RGB(99,102,241), RGB(52,211,153), RGB(99,102,241), RGB(14,165,233), RGB(217,70,239), RGB(56,72,102), RGB(10,16,30) },
+    { RGB(15,23,42), RGB(30,41,59), RGB(51,65,85), RGB(241,245,249), RGB(148,163,184), RGB(34,211,238), RGB(99,102,241), RGB(52,211,153), RGB(99,102,241), RGB(14,165,233), RGB(217,70,239), RGB(56,72,102), RGB(10,16,30), 0 },
     /* Fuego: fondo negro, naranja -> rojo */
-    { RGB(12,10,10), RGB(30,20,16), RGB(54,34,26), RGB(255,247,237), RGB(214,178,150), RGB(249,115,22), RGB(239,68,68), RGB(52,211,153), RGB(234,88,12), RGB(249,115,22), RGB(220,38,38), RGB(64,32,20), RGB(5,5,5) },
+    { RGB(12,10,10), RGB(30,20,16), RGB(54,34,26), RGB(255,247,237), RGB(214,178,150), RGB(249,115,22), RGB(239,68,68), RGB(52,211,153), RGB(234,88,12), RGB(249,115,22), RGB(220,38,38), RGB(64,32,20), RGB(5,5,5), 0 },
     /* Esmeralda: fondo negro verdoso, verde -> lima */
-    { RGB(6,20,14), RGB(12,34,24), RGB(24,54,38), RGB(236,253,245), RGB(148,190,168), RGB(16,185,129), RGB(132,204,22), RGB(52,211,153), RGB(5,150,105), RGB(16,185,129), RGB(163,230,53), RGB(24,62,44), RGB(3,12,8) },
+    { RGB(6,20,14), RGB(12,34,24), RGB(24,54,38), RGB(236,253,245), RGB(148,190,168), RGB(16,185,129), RGB(132,204,22), RGB(52,211,153), RGB(5,150,105), RGB(16,185,129), RGB(163,230,53), RGB(24,62,44), RGB(3,12,8), 0 },
+    /* Pinkimich: rosa pastel con blanco y letras negras */
+    { RGB(255,228,236), RGB(255,255,255), RGB(255,205,218), RGB(30,20,25), RGB(120,90,105), RGB(236,72,153), RGB(249,168,212), RGB(5,150,105), RGB(244,114,182), RGB(236,72,153), RGB(249,168,212), RGB(251,207,232), RGB(255,240,245), 1 },
 };
-static const char *g_themeNames[3] = { "neon", "fuego", "esmeralda" };
-static int g_theme = 0; /* 0 Neon, 1 Fuego, 2 Esmeralda */
+static const char *g_themeNames[4] = { "neon", "fuego", "esmeralda", "pinkimich" };
+static int g_theme = 0; /* 0 Neon, 1 Fuego, 2 Esmeralda, 3 Pinkimich */
+#define THEME_PINKIMICH 3 /* tema claro con logo de Kuromi + Cinnamoroll */
 static Theme g_themeCur; /* paleta activa (se fija en LoadTheme/ApplyTheme) */
 #define COL_BG      (g_themeCur.bg)
 #define COL_CARD    (g_themeCur.card)
@@ -184,6 +191,7 @@ static HBRUSH g_brBg, g_brCard, g_brBtn, g_brBgDeep;
 static double g_desiredMs = 1.0;
 static double g_currentMs = 15.6;
 static HBITMAP g_hLogoBmp = NULL;
+static HBITMAP g_hPinkBmp = NULL; /* v13.1: logo Pinkimich (Kuromi + Cinnamoroll, RCDATA 102), solo con ese tema */
 static ULONG_PTR g_gdiplusToken = 0;
 static void SetStatus(const char *s); /* definida en Helpers UI, usada por DNS */
 static void TrayUpdateTip(void); /* bandeja (v8): refresca el tooltip */
@@ -199,8 +207,10 @@ static void SetChecked(int id, int v);
  *   traducido y lo registran: ApplyLanguage() les vuelve a poner el
  *   texto al cambiar de idioma, sin reiniciar (el idioma se guarda en
  *   HKCU\Software\LuAnOptimizer Language, "es" o "en").
- * - Las paginas tienen WS_VSCROLL: cada pestana se desplaza en vertical
- *   (barra + rueda del mouse) porque la ventana es compacta (700x560).
+ * - Las paginas se desplazan en vertical (barra + rueda del mouse)
+ *   porque la ventana es compacta (700x560). v13.1: la barra ya no es
+ *   la del sistema (WS_VSCROLL) sino una dibujada por el programa con
+ *   los colores del tema (ver ScrollThumbRect en Desplazamiento).
  * - UpdateStatusBox() invalida la zona del cuadro de estado (se dibuja
  *   en WM_PAINT): ACTIVO verde / APAGADO gris.
  * ====================================================================== */
@@ -463,6 +473,7 @@ enum {
     LS_THEME_NEON,
     LS_THEME_FIRE,
     LS_THEME_EMERALD,
+    LS_THEME_PINK,
     LS_COUNT
 };
 
@@ -724,6 +735,7 @@ static const char *g_langStr[LS_COUNT][2] = {
     { "Neón", "Neon" }, /* LS_THEME_NEON */
     { "Fuego", "Fire" }, /* LS_THEME_FIRE */
     { "Esmeralda", "Emerald" }, /* LS_THEME_EMERALD */
+    { "Pinkimich", "Pinkimich" }, /* LS_THEME_PINK */
 };
 
 static int g_lang = 0; /* 0 = espanol, 1 = English */
@@ -757,7 +769,7 @@ static void LoadTheme(void) {
     if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\LuAnOptimizer", 0, KEY_READ, &hk) == ERROR_SUCCESS) {
         char v[16]; DWORD n = sizeof v, tp = 0;
         if (RegQueryValueExA(hk, "Theme", NULL, &tp, (BYTE *)v, &n) == ERROR_SUCCESS && tp == REG_SZ)
-            for (int i = 0; i < 3; i++) if (strcmp(v, g_themeNames[i]) == 0) { g_theme = i; break; }
+            for (int i = 0; i < 4; i++) if (strcmp(v, g_themeNames[i]) == 0) { g_theme = i; break; }
         RegCloseKey(hk);
     }
     g_themeCur = g_themes[g_theme];
@@ -812,6 +824,42 @@ static int PageIndexFromHwnd(HWND h) {
     for (int i = 0; i < 5; i++) if (g_pages[i] == h) return i;
     return -1;
 }
+/* ---------- Barra de desplazamiento propia, por tema (v13.1) ----------
+ * La barra vertical del sistema (WS_VSCROLL) se veia fuera del diseno,
+ * asi que las paginas ya no la usan: la barra se dibuja en WM_PAINT de
+ * la pagina (track del color de tarjeta del tema, thumb redondeado con
+ * el degradado de acento del tema, igual que el indicador de pestanas)
+ * y se maneja con el raton en PageWndProc (arrastre del thumb, clic en
+ * el track = salto de pagina, rueda del mouse). Todo el desplazamiento
+ * sigue pasando por PageSetScroll, que invalida solo la franja de la
+ * barra para repintarla. Sin WS_VSCROLL el cliente de la pagina mide
+ * 680 px (antes 663), asi que la franja x 666..678 queda libre: los
+ * controles se colocaron con la barra del sistema puesta. */
+#define SCROLL_W 12
+static int g_scrollDrag[5] = { -1, -1, -1, -1, -1 }; /* 1 = arrastrando el thumb */
+static int g_scrollGrab[5] = { 0, 0, 0, 0, 0 };      /* agarre: y del raton - y del thumb */
+static int g_scrollHover[5] = { 0, 0, 0, 0, 0 };     /* 1 = raton sobre la barra */
+/* Rectangulo del track (siempre) y del thumb; devuelve 0 si no hay nada
+ * que desplazar (contenido cabe en la pagina). */
+static int ScrollThumbRect(HWND hwnd, int idx, RECT *track, RECT *thumb) {
+    RECT r; GetClientRect(hwnd, &r);
+    track->left = r.right - SCROLL_W - 2; track->right = r.right - 2;
+    track->top = 4; track->bottom = r.bottom - 4;
+    int maxOff = g_pageContentH[idx] - PAGE_H; if (maxOff < 0) maxOff = 0;
+    if (maxOff <= 0) return 0;
+    int th = (track->bottom - track->top) * PAGE_H / g_pageContentH[idx];
+    if (th < 28) th = 28;
+    if (th > track->bottom - track->top) th = track->bottom - track->top;
+    int ty = track->top + g_pageScroll[idx] * (track->bottom - track->top - th) / maxOff;
+    thumb->left = track->left + 1; thumb->right = track->right - 1;
+    thumb->top = ty; thumb->bottom = ty + th;
+    return 1;
+}
+static void ScrollInvalidate(HWND hwnd) {
+    RECT r; GetClientRect(hwnd, &r);
+    RECT sr = { r.right - SCROLL_W - 2, 0, r.right, r.bottom };
+    InvalidateRect(hwnd, &sr, FALSE);
+}
 /* Callback de EnumChildWindows: mueve cada hijo 'dy' pixeles en Y. */
 static BOOL CALLBACK PageMoveChild(HWND h, LPARAM lp) {
     int dy = (int)lp;
@@ -827,9 +875,7 @@ static void PageSetScroll(int idx, int off) {
     int dy = g_pageScroll[idx] - off; /* mover hijos la diferencia */
     g_pageScroll[idx] = off;
     if (dy) EnumChildWindows(g_pages[idx], PageMoveChild, (LPARAM)dy);
-    SCROLLINFO si; memset(&si, 0, sizeof si); si.cbSize = sizeof si; si.fMask = SIF_ALL;
-    si.nMin = 0; si.nMax = g_pageContentH[idx]; si.nPage = PAGE_H; si.nPos = off;
-    SetScrollInfo(g_pages[idx], SB_VERT, &si, TRUE);
+    ScrollInvalidate(g_pages[idx]); /* v13.1: repintar la barra propia */
 }
 static BOOL CALLBACK PageMeasureChild(HWND h, LPARAM lp) {
     int *maxY = (int *)lp;
@@ -975,6 +1021,7 @@ static void RefreshThemeCombo(void) {
     SendMessage(cb, CB_ADDSTRING, 0, (LPARAM)Tr(LS_THEME_NEON));
     SendMessage(cb, CB_ADDSTRING, 0, (LPARAM)Tr(LS_THEME_FIRE));
     SendMessage(cb, CB_ADDSTRING, 0, (LPARAM)Tr(LS_THEME_EMERALD));
+    SendMessage(cb, CB_ADDSTRING, 0, (LPARAM)Tr(LS_THEME_PINK));
     SendMessage(cb, CB_SETCURSEL, (WPARAM)g_theme, 0);
 }
 #define WM_UPDATE_FOUND (WM_APP+5)
@@ -984,6 +1031,28 @@ static void RefreshThemeCombo(void) {
 #define WM_TRACE_DONE (WM_APP+9)
 
 /* ---------- Logo LU-AN (GDI+, desde logo.jpg en memoria) ---------- */
+/* v13.1: convierte bytes JPEG en HBITMAP (GDI+). Lo usa el logo del
+ * planeta (logo_data.h) y el logo Pinkimich (RCDATA 102). */
+static int JpgBytesToHBitmap(const void *data, DWORD len, HBITMAP *out) {
+    *out = NULL;
+    if (!data || !len) return 0;
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
+    if (!hMem) return 0;
+    void *p = GlobalLock(hMem);
+    if (!p) { GlobalFree(hMem); return 0; }
+    memcpy(p, data, len);
+    GlobalUnlock(hMem);
+    IStream *stream = NULL;
+    if (CreateStreamOnHGlobal(hMem, TRUE, &stream) != S_OK) { GlobalFree(hMem); return 0; }
+    GpBitmap *bmp = NULL;
+    if (GdipCreateBitmapFromStream(stream, &bmp) != 0) { stream->lpVtbl->Release(stream); return 0; }
+    stream->lpVtbl->Release(stream);
+    HBITMAP hbm = NULL;
+    if (GdipCreateHBITMAPFromBitmap(bmp, &hbm, 0) != 0) { GdipDisposeImage((GpImage*)bmp); return 0; }
+    GdipDisposeImage((GpImage*)bmp);
+    *out = hbm;
+    return 1;
+}
 static void LoadLogo(void) {
     GdiplusStartupInput input;
     input.GdiplusVersion = 1;
@@ -991,24 +1060,17 @@ static void LoadLogo(void) {
     input.SuppressBackgroundThread = FALSE;
     input.SuppressExternalCodecs = FALSE;
     if (GdiplusStartup(&g_gdiplusToken, &input, NULL) != 0) return;
-    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, g_logoJpgLen);
-    if (!hMem) return;
-    void *p = GlobalLock(hMem);
-    if (!p) { GlobalFree(hMem); return; }
-    memcpy(p, g_logoJpg, g_logoJpgLen);
-    GlobalUnlock(hMem);
-    IStream *stream = NULL;
-    if (CreateStreamOnHGlobal(hMem, TRUE, &stream) != S_OK) { GlobalFree(hMem); return; }
-    GpBitmap *bmp = NULL;
-    if (GdipCreateBitmapFromStream(stream, &bmp) != 0) { stream->lpVtbl->Release(stream); return; }
-    stream->lpVtbl->Release(stream);
-    HBITMAP hbm = NULL;
-    if (GdipCreateHBITMAPFromBitmap(bmp, &hbm, 0) != 0) { GdipDisposeImage((GpImage*)bmp); return; }
-    GdipDisposeImage((GpImage*)bmp);
-    g_hLogoBmp = hbm;
+    JpgBytesToHBitmap(g_logoJpg, (DWORD)g_logoJpgLen, &g_hLogoBmp);
+    /* v13.1: logo Pinkimich desde RCDATA 102 (pinkimich.jpg). Si no se
+     * puede cargar, g_hPinkBmp queda NULL y se usa el logo del planeta. */
+    { HRSRC hr = FindResourceA(g_hInst, MAKEINTRESOURCE(102), RT_RCDATA);
+      if (hr) { HGLOBAL hg = LoadResource(g_hInst, hr);
+        if (hg) { const void *pd = LockResource(hg); DWORD sz = SizeofResource(g_hInst, hr);
+          if (pd && sz) JpgBytesToHBitmap(pd, sz, &g_hPinkBmp); } } }
 }
 static void FreeLogo(void) {
     if (g_hLogoBmp) { DeleteObject(g_hLogoBmp); g_hLogoBmp = NULL; }
+    if (g_hPinkBmp) { DeleteObject(g_hPinkBmp); g_hPinkBmp = NULL; }
     if (g_gdiplusToken) { GdiplusShutdown(g_gdiplusToken); g_gdiplusToken = 0; }
 }
 
@@ -3569,24 +3631,64 @@ static LRESULT CALLBACK PageWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_COMMAND: SendMessageA(g_hwnd, WM_COMMAND, wp, lp); return 0;
     case WM_HSCROLL: SendMessageA(g_hwnd, WM_HSCROLL, wp, lp); return 0;
-    case WM_VSCROLL: /* v11: desplazamiento de la pestana (barra propia) */
-        if (lp) return 0; /* barra de un hijo (edit/listbox): el control se desplaza solo */
-        { int idx = PageIndexFromHwnd(hwnd);
-          if (idx < 0) return 0;
-          int off = g_pageScroll[idx];
-          int maxOff = g_pageContentH[idx] - PAGE_H; if (maxOff < 0) maxOff = 0;
-          switch (LOWORD(wp)) {
-          case SB_LINEUP: off -= 24; break;
-          case SB_LINEDOWN: off += 24; break;
-          case SB_PAGEUP: off -= PAGE_H; break;
-          case SB_PAGEDOWN: off += PAGE_H; break;
-          case SB_THUMBTRACK: case SB_THUMBPOSITION: off = HIWORD(wp); break;
-          case SB_TOP: off = 0; break;
-          case SB_BOTTOM: off = maxOff; break;
-          default: return 0;
+    case WM_LBUTTONDOWN: { /* v13.1: clic en la barra propia */
+        int idx = PageIndexFromHwnd(hwnd);
+        if (idx < 0) break;
+        int x = (int)(short)LOWORD(lp), y = (int)(short)HIWORD(lp);
+        RECT track, thumb;
+        int has = ScrollThumbRect(hwnd, idx, &track, &thumb);
+        if (x < track.left || x >= track.right || !has) break;
+        if (y >= thumb.top && y < thumb.bottom) {
+            /* Agarrar el thumb: capturar el raton para seguirlo. */
+            g_scrollDrag[idx] = 1; g_scrollGrab[idx] = y - thumb.top;
+            SetCapture(hwnd);
+        } else if (y < thumb.top) {
+            PageSetScroll(idx, g_pageScroll[idx] - PAGE_H);
+        } else {
+            PageSetScroll(idx, g_pageScroll[idx] + PAGE_H);
+        }
+        return 0; }
+    case WM_MOUSEMOVE: { /* v13.1: arrastre del thumb + hover de la barra */
+        int idx = PageIndexFromHwnd(hwnd);
+        if (idx < 0) break;
+        int x = (int)(short)LOWORD(lp), y = (int)(short)HIWORD(lp);
+        if (g_scrollDrag[idx] == 1) {
+            RECT track, thumb;
+            if (ScrollThumbRect(hwnd, idx, &track, &thumb)) {
+                int maxOff = g_pageContentH[idx] - PAGE_H; if (maxOff < 0) maxOff = 0;
+                int range = (track.bottom - track.top) - (thumb.bottom - thumb.top);
+                int off = range > 0 ? (y - g_scrollGrab[idx] - track.top) * maxOff / range : 0;
+                PageSetScroll(idx, off);
+            }
+            return 0;
+        }
+        { RECT track, thumb;
+          int has = ScrollThumbRect(hwnd, idx, &track, &thumb);
+          int over = has && x >= track.left && x < track.right;
+          if (over && !g_scrollHover[idx]) {
+              g_scrollHover[idx] = 1;
+              TRACKMOUSEEVENT t; t.cbSize = sizeof t; t.dwFlags = TME_LEAVE; t.hwndTrack = hwnd; t.dwHoverTime = 0;
+              TrackMouseEvent(&t);
+              ScrollInvalidate(hwnd);
+          } else if (!over && g_scrollHover[idx]) {
+              g_scrollHover[idx] = 0; ScrollInvalidate(hwnd);
           }
-          PageSetScroll(idx, off); }
-        return 0;
+        }
+        return 0; }
+    case WM_LBUTTONUP: { /* v13.1: soltar el thumb */
+        int idx = PageIndexFromHwnd(hwnd);
+        if (idx >= 0 && g_scrollDrag[idx] == 1) {
+            g_scrollDrag[idx] = -1; ReleaseCapture(); ScrollInvalidate(hwnd);
+        }
+        return 0; }
+    case WM_CAPTURECHANGED: { /* v13.1: si se pierde la captura, soltar el thumb */
+        int idx = PageIndexFromHwnd(hwnd);
+        if (idx >= 0 && g_scrollDrag[idx] == 1) { g_scrollDrag[idx] = -1; ScrollInvalidate(hwnd); }
+        return 0; }
+    case WM_MOUSELEAVE: { /* v13.1: quitar el hover de la barra */
+        int idx = PageIndexFromHwnd(hwnd);
+        if (idx >= 0 && g_scrollHover[idx]) { g_scrollHover[idx] = 0; ScrollInvalidate(hwnd); }
+        return 0; }
     case WM_MOUSEWHEEL: { /* v11: rueda del mouse baja la pestana */
         int idx = PageIndexFromHwnd(hwnd);
         if (idx < 0) return 0;
@@ -3613,6 +3715,36 @@ static LRESULT CALLBACK PageWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         HGDIOBJ ob = SelectObject(hdc, br), op = SelectObject(hdc, pen);
         RoundRect(hdc, r.left + 1, r.top + 1, r.right - 1, r.bottom - 1, 14, 14);
         SelectObject(hdc, ob); SelectObject(hdc, op); DeleteObject(pen);
+        /* v13.1: barra de desplazamiento propia, integrada al tema:
+         * track del color de tarjeta, thumb redondeado con el degradado
+         * de acento del tema (igual que el indicador de pestanas). */
+        { int idx = PageIndexFromHwnd(hwnd);
+          if (idx >= 0) {
+            RECT track, thumb;
+            int has = ScrollThumbRect(hwnd, idx, &track, &thumb);
+            HBRUSH tbr = CreateSolidBrush(Blend(COL_CARD2, COL_BG, 128));
+            HPEN tpen = CreatePen(PS_SOLID, 1, Blend(COL_CARD2, COL_BG, 128));
+            HGDIOBJ ob2 = SelectObject(hdc, tbr), op2 = SelectObject(hdc, tpen);
+            RoundRect(hdc, track.left, track.top, track.right, track.bottom, 10, 10);
+            SelectObject(hdc, ob2); SelectObject(hdc, op2);
+            DeleteObject(tbr); DeleteObject(tpen);
+            if (has) {
+                HRGN rg = CreateRoundRectRgn(thumb.left, thumb.top, thumb.right, thumb.bottom, 9, 9);
+                SelectClipRgn(hdc, rg);
+                int hov = g_scrollHover[idx] || g_scrollDrag[idx] == 1;
+                for (int y = thumb.top; y < thumb.bottom; y++) {
+                    COLORREF c = Blend(COL_ACCENT, COL_MAGENTA, (y - thumb.top) * 255 / (thumb.bottom - thumb.top));
+                    if (hov) c = Blend(c, RGB(255,255,255), 70);
+                    HPEN p2 = CreatePen(PS_SOLID, 1, c);
+                    HGDIOBJ op3 = SelectObject(hdc, p2);
+                    MoveToEx(hdc, thumb.left, y, NULL); LineTo(hdc, thumb.right, y);
+                    SelectObject(hdc, op3); DeleteObject(p2);
+                }
+                SelectClipRgn(hdc, NULL);
+                DeleteObject(rg);
+            }
+          }
+        }
         EndPaint(hwnd, &ps);
         return 0;
     }
@@ -4035,11 +4167,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
          * indicador deslizante y animacion de hover) --- */
         g_tabBar = CreateWindowExA(0, "LuAnTabBar", "", WS_CHILD|WS_VISIBLE|WS_TABSTOP, TABBAR_X, TABBAR_Y, TABBAR_W, TABBAR_H, hwnd, (HMENU)(INT_PTR)ID_TAB, g_hInst, NULL);
         TabIndRect(0, &g_indX, &g_indW); g_indTX = g_indX; g_indTW = g_indW;
-        g_pageTimer = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
-        g_pageFK = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_VSCROLL|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
-        g_pageDNS = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_VSCROLL|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
-        g_pageComp = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_VSCROLL|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
-        g_pageGames = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_VSCROLL|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
+        g_pageTimer = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_VISIBLE|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
+        g_pageFK = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
+        g_pageDNS = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
+        g_pageComp = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
+        g_pageGames = CreateWindowExA(0, "LuAnPage", "", WS_CHILD|WS_CLIPCHILDREN, PAGE_X, PAGE_Y, PAGE_W, PAGE_H, hwnd, NULL, g_hInst, NULL);
         g_pages[0] = g_pageTimer; g_pages[1] = g_pageFK; g_pages[2] = g_pageDNS; g_pages[3] = g_pageComp; g_pages[4] = g_pageGames;
         ReparentToPages();
         PageInitScroll(); /* v11: desplazamiento de cada pestana */
@@ -4123,7 +4255,20 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_PAINT: {
         PAINTSTRUCT ps; HDC hdc = BeginPaint(hwnd, &ps);
-        if (g_hLogoBmp) {
+        if (g_theme == THEME_PINKIMICH && g_hPinkBmp) {
+            /* v13.1: solo con Pinkimich el logo es Kuromi + Cinnamoroll.
+             * La imagen es 1920x1280: un recorte cuadrado cortaria las
+             * orejas de los personajes, asi que se escala entera dentro
+             * del mismo rectangulo del logo (190x103), centrada: 154x103.
+             * Los textos LU-AN OPTIMIZER / GAMING OPTIMIZATION no cambian. */
+            HDC mem = CreateCompatibleDC(hdc);
+            HGDIOBJ old = SelectObject(mem, g_hPinkBmp);
+            BITMAP bm; GetObject(g_hPinkBmp, sizeof bm, &bm);
+            int dw = 103 * bm.bmWidth / bm.bmHeight; if (dw > 190) dw = 190;
+            int dx = 20 + (190 - dw) / 2;
+            StretchBlt(hdc, dx, 10, dw, 103, mem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+            SelectObject(mem, old); DeleteDC(mem);
+        } else if (g_hLogoBmp) {
             HDC mem = CreateCompatibleDC(hdc);
             HGDIOBJ old = SelectObject(mem, g_hLogoBmp);
             BITMAP bm; GetObject(g_hLogoBmp, sizeof bm, &bm);
@@ -4153,7 +4298,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           HBRUSH oldD = SelectObject(hdc, dbr);
           Ellipse(hdc, dotX - dotR, dotY - dotR, dotX + dotR, dotY + dotR);
           SelectObject(hdc, oldD); DeleteObject(dbr);
-          SetTextColor(hdc, RGB(0xFF, 0xFF, 0xFF)); SetBkMode(hdc, TRANSPARENT);
+          SetTextColor(hdc, g_themeCur.light ? COL_TEXT : RGB(0xFF, 0xFF, 0xFF)); SetBkMode(hdc, TRANSPARENT); /* v13.1: en tema claro el texto es negro (blanco sobre rosa pastel no se lee) */
           TextOutA(hdc, dotX + 11, by + (bh - sz.cy) / 2, st, (int)strlen(st));
           SelectObject(hdc, oldF); }
 
@@ -4183,7 +4328,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (id == ID_DNS_ADAPTER && code == CBN_SELCHANGE) { RefreshCurrentDns(); return 0; }
         if (id == ID_THEME_COMBO && code == CBN_SELCHANGE) { /* v13: cambiar tema al instante */
             int sel = (int)SendMessage(Ctl(ID_THEME_COMBO), CB_GETCURSEL, 0, 0);
-            if (sel >= 0 && sel < 3 && sel != g_theme) { g_theme = sel; SaveTheme(); ApplyTheme(); }
+            if (sel >= 0 && sel < 4 && sel != g_theme) { g_theme = sel; SaveTheme(); ApplyTheme(); }
             return 0;
         }
         if (code == BN_CLICKED && id >= ID_GAMES_AUTO_BASE && id < ID_GAMES_AUTO_BASE + 5) {

@@ -1,4 +1,4 @@
-# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v13)
+# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v13.1)
 
 Un solo archivo `LuAnOptimizer.exe`. Doble clic y se abre.
 No necesita Python, no necesita .NET, no necesita instalar nada.
@@ -7,7 +7,23 @@ Compatible con **Windows 7, 8, 10 y 11** (64 bits).
 Escrito en C con la API de Windows, por eso es un .exe nativo y ligero
 (icono incluido). Logo LU-AN incluido dentro de la ventana
 **y como icono del archivo en el Explorador**.
-Versión incrustada **13.0.0.0** (se ve en Propiedades del .exe > Detalles).
+Versión incrustada **13.1.0.0** (se ve en Propiedades del .exe > Detalles).
+
+## Novedades de la v13.1 (barra propia + tema Pinkimich)
+
+- **Barra de desplazamiento propia:** las pestañas ya no usan la barra
+  gris del sistema: ahora la barra se dibuja con el diseño del programa
+  y sigue el tema activo (track del color de tarjeta, thumb redondeado
+  con el degradado de acento, igual que el indicador de pestañas).
+  Funciona igual que antes: rueda del ratón, arrastre del thumb y clic
+  en el track para saltar de página.
+- **Tema Pinkimich:** rosa pastel con blanco y letras negras, el primer
+  tema claro. Está en el mismo selector de temas, junto a Neón, Fuego
+  y Esmeralda, y se guarda igual en el registro.
+- **Logo exclusivo de Pinkimich:** solo con ese tema, el logo dentro de
+  la ventana cambia por Kuromi y Cinnamoroll (el icono del archivo en
+  el Explorador sigue siendo el planeta LU-AN). Los textos
+  "LU-AN OPTIMIZER / GAMING OPTIMIZATION" no cambian.
 
 ## Novedades de la v13 (temas de colores)
 
