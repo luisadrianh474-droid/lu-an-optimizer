@@ -1,4 +1,4 @@
-# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v13.1)
+# Lu-An Optimizer — Timer + FilterKeys + DNS + Competitivo + Juegos (v13.2)
 
 Un solo archivo `LuAnOptimizer.exe`. Doble clic y se abre.
 No necesita Python, no necesita .NET, no necesita instalar nada.
@@ -7,7 +7,20 @@ Compatible con **Windows 7, 8, 10 y 11** (64 bits).
 Escrito en C con la API de Windows, por eso es un .exe nativo y ligero
 (icono incluido). Logo LU-AN incluido dentro de la ventana
 **y como icono del archivo en el Explorador**.
-Versión incrustada **13.1.0.0** (se ve en Propiedades del .exe > Detalles).
+Versión incrustada **13.2.0.0** (se ve en Propiedades del .exe > Detalles).
+
+## Novedades de la v13.2 (arreglo duradero de la carrera del auto-update)
+
+- En la v13.1 el archivo de versión ya decía 13.1.0 pero el release
+  13.1.0 todavía no existía, y el actualizador mezclaba la versión
+  nueva con el .exe de la release anterior: el SHA256 no coincidía y
+  salía el error de seguridad (falso, la protección funcionó).
+- Ahora el actualizador consulta **siempre** la API de GitHub Releases
+  y toma versión, dirección del .exe y hash **de la misma release que
+  realmente existe**. El archivo de versión solo se usa de respaldo si
+  la API falla. Durante una publicación, el programa simplemente ofrece
+  la última release que ya existe (o dice que ya estás actualizado):
+  el falso error ya no puede aparecer.
 
 ## Novedades de la v13.1 (barra propia + tema Pinkimich)
 

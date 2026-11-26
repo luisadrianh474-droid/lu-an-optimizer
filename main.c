@@ -1,4 +1,10 @@
-/* Lu-An Optimizer v12 - Timer Resolution + FilterKeys + DNS Jumper + Competitivo
+/* Lu-An Optimizer v13.2 - Timer Resolution + FilterKeys + DNS Jumper + Competitivo
+ * Novedades v13.2: arreglo duradero de la carrera del auto-update (en
+ * v13.1 el txt ya decia 13.1.0 pero la ultima release era la 13.0.0 y el
+ * exe descargado no coincidia con el hash del txt). Ahora UpdateCheck
+ * consulta SIEMPRE la API de GitHub Releases y toma version, URL y hash
+ * de la MISMA release que existe de verdad; version.txt solo respalda
+ * si la API falla, y su hash solo se usa si el tag coincide.
  * Novedades v12: arreglo del auto-update (v11 descargaba la pagina HTML de
  * releases porque version.txt apuntaba a releases/latest y su SHA256 nunca
  * coincidia). Ahora la URL del exe se resuelve desde la API de GitHub
@@ -118,8 +124,8 @@
 #endif
 
 /* ---------- Version (v13.1) ---------- */
-#define APP_VERSION "13.1.0"
-#define APP_VERSION_NUM 13,1,0,0
+#define APP_VERSION "13.2.0"
+#define APP_VERSION_NUM 13,2,0,0
 #define UPDATE_API_URL "https://api.github.com/repos/luisadrianh474-droid/lu-an-optimizer/releases/latest"
 #define UPDATE_TXT_URL "https://raw.githubusercontent.com/luisadrianh474-droid/lu-an-optimizer/main/version.txt"
 #define UPDATE_RELEASES_URL "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/latest"
@@ -2029,66 +2035,50 @@ static int FetchUrl(const char *url, char *out, int outSize) {
     InternetCloseHandle(hInet);
     return ok && total > 0;
 }
-/* v12: resuelve la URL directa del .exe de la version `ver`.
- * 1) API de GitHub Releases: asset cuyo nombre es LuAnOptimizer.exe,
- *    su browser_download_url (misma busqueda que el fallback de abajo).
- * 2) Si la API falla, URL directa construida:
- *    releases/download/v<ver>/LuAnOptimizer.exe (el tag lleva "v").
- * El campo url= de version.txt YA NO se usa: en v11 apuntaba a la
- * pagina web de releases (releases/latest) y el updater descargaba
- * HTML, cuyo SHA256 nunca coincidia con el publicado. Devuelve 1 si
- * quedo una URL .exe en `out`, 0 si no (entonces el hilo de descarga
- * abre la pagina de releases como antes). */
-static int ResolveExeDownloadUrl(const char *ver, char *out, int outLen) {
-    out[0] = 0;
-    char buf[65536];
-    if (FetchUrl(UPDATE_API_URL, buf, sizeof buf)) {
-        const char *p = buf;
-        while ((p = strstr(p, "\"browser_download_url\"")) != NULL) {
-            char u2[512] = {0};
-            const char *q = strchr(p + 22, '"');
-            if (q) { q++; const char *e = strchr(q, '"'); if (e && e - q < (int)sizeof u2) { memcpy(u2, q, e - q); u2[e - q] = 0; } }
-            if (u2[0] && strstr(u2, "LuAnOptimizer.exe")) { strncpy(out, u2, outLen - 1); out[outLen - 1] = 0; return 1; }
-            p += 22;
-        }
-    }
-    if (ver && ver[0]) {
-        const char *v = ver;
-        while (*v == 'v' || *v == 'V') v++;
-        if (*v) {
-            snprintf(out, outLen, "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/download/v%s/LuAnOptimizer.exe", v);
-            return 1;
-        }
-    }
-    return 0;
-}
+/* v13.2: ya no hay resolver separado. UpdateCheckThreadProc consulta
+ * SIEMPRE la API de GitHub Releases y toma version, URL y hash de la
+ * MISMA release que existe de verdad; version.txt solo es respaldo
+ * si la API falla. Asi la carrera version.txt-vs-release (v13.1: el
+ * txt ya decia 13.1.0 pero la ultima release era la 13.0.0 y el exe
+ * descargado no coincidia con el hash del txt) ya no puede dar un
+ * falso error de SHA256. */
 static DWORD WINAPI UpdateCheckThreadProc(LPVOID lp) {
     (void)lp;
     if (!g_updateManual) Sleep(3000); /* al arrancar, esperar un poco: nunca bloquear el inicio */
     char buf[65536];
+    char verTxt[64] = {0}, shaTxt[128] = {0};
     char ver[64] = {0}, sha[128] = {0}, url[512] = {0};
     int found = 0;
-    /* 1) Ruta simple: version.txt en raw.githubusercontent */
+    /* 1) version.txt en raw.githubusercontent: version + hash publicados.
+     * OJO: durante una publicacion el txt puede ir POR DELANTE del
+     * release (ya decia 13.1.0 cuando la ultima release era la 13.0.0),
+     * asi que estos valores NUNCA se usan solos: solo respaldan. */
     if (FetchUrl(UPDATE_TXT_URL, buf, sizeof buf)) {
         const char *v = strstr(buf, "version=");
         if (v) {
             v += 8;
             int i = 0;
-            while (*v && *v != '\r' && *v != '\n' && i < (int)sizeof ver - 1) ver[i++] = *v++;
-            ver[i] = 0;
+            while (*v && *v != '\r' && *v != '\n' && i < (int)sizeof verTxt - 1) verTxt[i++] = *v++;
+            verTxt[i] = 0;
             const char *h = strstr(buf, "sha256=");
-            if (h) { h += 7; i = 0; while (*h && *h != '\r' && *h != '\n' && i < (int)sizeof sha - 1) sha[i++] = *h++; sha[i] = 0; }
+            if (h) { h += 7; i = 0; while (*h && *h != '\r' && *h != '\n' && i < (int)sizeof shaTxt - 1) shaTxt[i++] = *h++; shaTxt[i] = 0; }
             /* v12: el campo url= de version.txt NO se lee: en v11 apuntaba
-             * a la pagina web de releases y el updater descargaba HTML.
-             * La URL del exe se resuelve abajo con ResolveExeDownloadUrl. */
-            if (ver[0]) found = 1;
+             * a la pagina web de releases y el updater descargaba HTML. */
         }
     }
-    /* 2) Si version.txt fallo, API de GitHub Releases */
-    if (!found && FetchUrl(UPDATE_API_URL, buf, sizeof buf)) {
+    /* 2) SIEMPRE la API de GitHub Releases: es la unica fuente que dice
+     * que release EXISTE de verdad. Version (tag sin la "v"), URL del
+     * asset LuAnOptimizer.exe y hash del body ("SHA256: ...") salen de
+     * la misma release, asi que no se puede mezclar una version con el
+     * exe de otra. Si el body no trae hash, el de version.txt solo vale
+     * si es la MISMA release (mismo tag); si no, el hash queda vacio y
+     * el hilo de descarga pide confirmacion (LS_UPD_NO_HASH) antes de
+     * instalar, como ya hacia. */
+    if (FetchUrl(UPDATE_API_URL, buf, sizeof buf)) {
         char tag[64] = {0};
         if (JsonStrVal(buf, "\"tag_name\"", tag, sizeof tag)) {
-            strncpy(ver, tag, sizeof ver - 1);
+            const char *tv = tag; while (*tv == 'v' || *tv == 'V') tv++;
+            strncpy(ver, tv, sizeof ver - 1);
             /* asset LuAnOptimizer.exe: buscar su browser_download_url */
             const char *p = buf;
             while ((p = strstr(p, "\"browser_download_url\"")) != NULL) {
@@ -2101,17 +2091,22 @@ static DWORD WINAPI UpdateCheckThreadProc(LPVOID lp) {
             /* hash en el body del release: linea "SHA256: <hash>" */
             const char *hs = strstr(buf, "SHA256:");
             if (hs) { hs += 7; while (*hs == ' ') hs++; int i = 0; while (*hs && *hs != '"' && *hs != '\r' && *hs != '\n' && *hs != '\\' && i < (int)sizeof sha - 1) sha[i++] = *hs++; sha[i] = 0; }
+            if (!sha[0] && verTxt[0] && ver[0] && strcmp(ver, verTxt) == 0)
+                strncpy(sha, shaTxt, sizeof sha - 1);
             /* Si la API dio el tag pero no el asset, URL directa del tag. */
-            if (!url[0] && tag[0]) {
-                const char *v = tag; while (*v == 'v' || *v == 'V') v++;
-                if (*v) snprintf(url, sizeof url, "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/download/v%s/LuAnOptimizer.exe", v);
-            }
+            if (!url[0] && ver[0])
+                snprintf(url, sizeof url, "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/download/v%s/LuAnOptimizer.exe", ver);
             found = 1;
         }
     }
-    /* v12: si version.txt dio version+hash pero ninguna URL (su url= ya
-     * no se usa), resolver la descarga del exe desde la API o construirla. */
-    if (found && !url[0]) ResolveExeDownloadUrl(ver, url, sizeof url);
+    /* 3) Si la API fallo, respaldo con version.txt (como antes de v13.2):
+     * su version+hash y la URL directa construida del tag. */
+    if (!found && verTxt[0]) {
+        strncpy(ver, verTxt, sizeof ver - 1);
+        strncpy(sha, shaTxt, sizeof sha - 1);
+        snprintf(url, sizeof url, "https://github.com/luisadrianh474-droid/lu-an-optimizer/releases/download/v%s/LuAnOptimizer.exe", ver);
+        found = 1;
+    }
     InterlockedExchange(&g_updateBusy, 0);
     if (!found) { if (g_hwnd) PostMessageA(g_hwnd, WM_UPDATE_STATUS, 0, 0); return 0; }
     if (!IsNewerVersion(ver)) { if (g_hwnd) PostMessageA(g_hwnd, WM_UPDATE_STATUS, 1, 0); return 0; }
